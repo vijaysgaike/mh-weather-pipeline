@@ -59,8 +59,25 @@ Run `.venv/bin/weather-pipeline run` to append another bounded live batch, and
 an explicit historical source/archive adapter; this pipeline does not claim to
 repair arbitrary historical gaps automatically.
 
-For GitHub scheduling, upload the local state archive to an HTTPS location you
-control, provide WEATHER_SEED_URL, manually seed the workflow, then verify its automatic four-hour schedule on
-the default branch. No dataset upload, public data
-release, or GitHub secret/settings change is performed by project code setup.
-See scheduled-ingestion.md for durable-state expiry, backup and access trade-offs.
+The user subsequently authorized maintaining the generated final dataset on
+GitHub. The weather-data branch now contains a compressed full CSV, daily CSVs
+and a manifest. Push main and weather-data together; the four-hour workflow
+updates that branch automatically. External WEATHER_SEED_URL setup is no longer
+required. Detailed raw/run audit state remains in artifacts. See
+scheduled-ingestion.md for branch publication and restoration behavior.
+
+## GitHub data publication update
+
+The user requested a maintained final-data file in the repository. Added
+scripts/publish_data.py, transactional snapshot merging in pipeline.py, and nine
+publication/recovery integration cases. Latest local checks: **152 tests passed,
+98.29% source coverage**, clean Ruff and mypy. The initial generated data branch
+contains all 213,191 accepted rows in a 9.8 MiB deterministic compressed full
+snapshot plus 158 daily CSV files. A full snapshot-to-empty-runtime recovery
+was exercised and passed complete Silver/CSV/SQLite validation.
+
+The updated four-hour workflow checks out weather-data, merges its accepted
+history, fetches new data, validates it, and commits changed final files using
+GITHUB_TOKEN. No-change runs skip commits. Expired artifacts no longer require
+an external seed URL: committed data can restore Silver/Gold. Both main and
+weather-data must be pushed before this can run on GitHub.

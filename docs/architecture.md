@@ -41,8 +41,13 @@ flowchart LR
 - Fatal storage errors stop processing; city API/schema errors do not abort other
   cities. Interrupted run records are marked at the next locked write. Every
   request batch is independently retryable because deduplication lives in SQL.
-- Runtime-state artifacts support ephemeral CI runners without publishing raw data
-  in Git. State is seeded explicitly and restored with validated paths/checksums;
-  expiry is an explicit operational risk documented in the runbook.
+- A separate weather-data branch maintains a deterministic compressed full CSV,
+  daily CSV partitions and checksummed manifest. Actions commits only changed
+  generated data there, using contents:write and the repository GITHUB_TOKEN.
+  Raw source inputs and .env remain excluded. Runtime artifacts retain detailed
+  audit/lineage and Bronze data; if absent, the published snapshot reconstructs
+  Silver/Gold. Every run reconciles committed history before ingestion so an
+  artifact older than the last successful data push cannot roll history back.
+  Snapshot conflicts fail the merge transaction instead of rewriting rows.
 
 See data-dictionary.md for variables and runbook.md for recovery and limitations.

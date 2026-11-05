@@ -25,3 +25,6 @@ dist/
 # Portable runtime state
 .state/
 weather-state*.zip
+
+# Separate GitHub data-branch checkout
+.published/

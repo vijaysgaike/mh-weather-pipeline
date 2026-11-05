@@ -36,7 +36,8 @@ are **never overwritten**. Working outputs live under `data/silver/`, raw files
 under `data/bronze/`, verified snapshots under `data/backups/`, and analytics
 exports under `data/gold/`. Quarantine and source lineage live in the working DB.
 Bring your own historical sources in these locations when cloning the repository;
-large datasets and `.env` are intentionally excluded from Git. Tests use small
+source datasets and `.env` are excluded from the code branch. The generated final
+dataset is maintained separately on `weather-data`. Tests use small
 synthetic fixtures and need neither real data nor network access.
 
 | Command | Purpose |
@@ -92,12 +93,30 @@ strict source typing, and pytest with a >=85% source coverage gate on Python
 3.11 and 3.12. Measured coverage is uploaded as a CI artifact; the badge above
 labels the required gate. See [verification](docs/completion.md) for local results.
 
-Scheduled GitHub ingestion runs every four hours when this workflow is on the default branch. It restores a
-verified runtime-state archive and uploads the updated state as an artifact,
-rather than committing large datasets. **An initial state archive is required**;
-it never silently starts from an empty history. Artifacts expire after 90 days:
-maintain an external backup and seed again if needed. Configuration and exact
-setup steps are in [scheduled operations](docs/scheduled-ingestion.md).
+Scheduled GitHub ingestion runs every four hours and commits new accepted data
+to the **[weather-data branch](https://github.com/vijaysgaike/mh-weather-pipeline/tree/weather-data)**:
+
+- **Full accumulated CSV:** [weather_dataset.csv.gz](https://github.com/vijaysgaike/mh-weather-pipeline/blob/weather-data/weather_dataset.csv.gz)
+  (download and decompress).
+- **Browsable CSV files:** [daily/](https://github.com/vijaysgaike/mh-weather-pipeline/tree/weather-data/daily),
+  partitioned by year/month/day.
+- **Counts and checksums:** [manifest.json](https://github.com/vijaysgaike/mh-weather-pipeline/blob/weather-data/manifest.json).
+
+Each run appends unique observations to Silver and republishes the accumulated
+snapshot/daily files, preserving accepted rows. Runs with no new data skip the
+Git commit. The separate branch keeps data commits out of code history; the
+compressed full snapshot and daily partitions avoid a growing uncompressed
+single file. Database audit history and raw JSON remain in the `weather-state`
+workflow artifact. If that artifact expires, the workflow rebuilds Silver/Gold
+from the committed snapshot; prior raw/audit history needs an external backup.
+No API key or external seed URL is required. Push both local branches once:
+
+```bash
+git push origin main weather-data
+```
+
+Then run **Scheduled ingestion** manually once in Actions, or wait for the
+four-hour schedule. See [scheduled operations](docs/scheduled-ingestion.md).
 
 [Runbook](docs/runbook.md) · [Architecture and decisions](docs/architecture.md) ·
 [Original inspection](docs/data-inspection.json) · [GitHub setup](docs/github-setup.md)

@@ -1,69 +1,94 @@
-# Scheduled GitHub ingestion
+# Scheduled GitHub ingestion and maintained data files
 
-The workflow is `.github/workflows/scheduled_ingest.yml`, every four hours at
-minute 17 UTC (05:47, 09:47, 13:47, 17:47, 21:47, 01:47 next day Asia/Kolkata). It needs no weather API
-secret. It uses the repository's scoped GITHUB_TOKEN for artifact access.
+The workflow `.github/workflows/scheduled_ingest.yml` runs every four hours at
+minute 17 UTC: 05:47, 09:47, 13:47, 17:47, 21:47, and 01:47 next day Asia/Kolkata.
+It can also be started manually in Actions. No Open-Meteo API key is required.
+
+## Where to find the final data on GitHub
+
+Select the **weather-data** branch in the same repository:
+
+- `weather_dataset.csv.gz`: full accumulated 37-column CSV, gzip-compressed.
+  Download and decompress it to get one complete CSV.
+- `daily/YYYY/MM/YYYY-MM-DD.csv`: smaller ordinary CSV files, browsable by date.
+- `manifest.json`: total row count, latest UTC observation, schema, SHA-256
+  checksums and the daily file list.
+
+The code stays on main. Dataset updates have their own commit history on
+weather-data. Accepted observations are never rewritten by the pipeline; a
+new commit adds newly accepted city/timestamp records. It replaces the compressed
+snapshot with the new accumulated version and extends the affected daily files.
+No-change runs create no data commit. These files inherit repository visibility.
+Supplied raw input files, database binaries, backups, .env and API responses are
+not committed to either branch.
 
 ## Initial setup
 
-1. Complete local backfill, ingestion and validation with your actual data.
-2. Pack runtime state while the writer lock is held:
-
-   ```bash
-   .venv/bin/python scripts/state_archive.py pack /tmp/weather-state.zip
-   ```
-
-3. Store that archive at an HTTPS download location you control. Treat the
-   archive as data: choose access and sharing deliberately. Do not commit it or
-   expose private signed URLs in repository files. Add its download URL as the
-   repository Actions secret `WEATHER_SEED_URL` (or supply the workflow's
-   `seed_url` input for the first manual run). Prefer the secret for private URLs.
-4. Manually run **Scheduled ingestion** in GitHub Actions. It downloads the seed,
-   verifies its manifest and checksums, restores into empty runtime outputs,
-   validates, ingests, and uploads a `weather-state` artifact.
-5. Confirm the result. Scheduled invocations run automatically every four hours
-   once the workflow is on the default branch and GitHub Actions is enabled. No
-   enablement variable is required. Manual invocations remain available for
-   setup/recovery. If there is no initial state, the job fails with setup instructions.
-
-Each subsequent run restores the newest unexpired artifact named weather-state.
-Concurrency groups serialize runs. It preserves Silver history, Bronze raw files,
-Gold exports, quarantine and run metadata. Original source datasets and backfill
-snapshots are not uploaded: keep their separate external backups. Runtime state
-archives use portable paths; old provenance records retain original machine paths,
-while Bronze sidecars also carry a relative raw_key for locating restored files.
-
-Failed/partial ingestion still attempts export recovery and packs accepted progress.
-The job reports failure for partial runs so alerts are not hidden. An ingestion
-failure followed by a successful repair still retains the original run's failed
-status. If repair/validation/packing fails, the upload is skipped and the previous
-valid artifact remains the restore source. Durable restoration must succeed
-before any ingestion starts. Missing/expired state fails explicitly rather than
-silently reinitializing history. Artifact retention is 90 days and depends on
-repository storage quotas; monitor those quotas and keep an external backup.
-
-## Restore locally
-
-Download the artifact, extract its contained weather-state.zip, and configure
-**empty** output locations in another config before restoring:
+The initial data branch is prepared locally from validated Silver data. Publish
+both branches once from your authenticated terminal:
 
 ```bash
-.venv/bin/python scripts/state_archive.py restore /path/weather-state.zip --config recovery.yaml
-.venv/bin/weather-pipeline --config recovery.yaml validate
+git push origin main weather-data
 ```
 
-Restore refuses to overwrite working files. Checksums, allowed namespaces,
-archive size (2 GiB uncompressed maximum), and path traversal are checked before
-writing outputs. Use fresh empty output paths after a failed/partial restore;
-do not delete your only good state. Snapshot packing uses SQLite online backup
-under the pipeline lock; it does not copy a live WAL database blindly.
+In GitHub Actions, run **Scheduled ingestion** once and inspect its result. It
+then runs every four hours with no enablement variable or seed URL. The workflow
+must be on the default branch and Actions must be enabled. It explicitly grants
+the job `contents: write` to commit data and `actions: read` to restore artifacts.
+A branch rule that prevents bot pushes to weather-data must allow this job or
+the publish step will fail; it never force-pushes or discards branch changes.
 
-## Trade-offs
+## What happens on each run
 
-Committing CSV updates creates noisy diffs, grows Git history and exposes the
-dataset to the repository audience. Artifact persistence avoids Git bloat but
-expires and is not a long-term backup. For a larger or business-critical workload,
-replace artifacts with durable versioned object storage and archive Bronze
-partitions under a retention policy. That requires credentials and infrastructure
-outside this lightweight project's scope. A seven-day live lookback cannot fill
-longer outages; see the runbook's historical-gap policy.
+1. Check out code and the weather-data branch into separate directories.
+2. Restore the newest unexpired weather-state artifact when available.
+3. Verify/decompress the committed dataset and transactionally merge it into
+   Silver. This also bootstraps an empty runner if no artifact exists. Existing
+   conflicts cause a failure; missing published rows are added, never overwritten.
+   This prevents loss if a prior data push succeeded but artifact upload failed.
+4. Validate the restored data, fetch Open-Meteo for historical cities, and append
+   unique valid records to the working database and CSV.
+5. Repair/validate exports and pack detailed runtime state.
+6. Regenerate the full compressed CSV, daily CSVs, and manifest; commit and push
+   changed files to weather-data using github-actions[bot].
+7. Upload the updated weather-state artifact, even if data publication failed,
+   so accepted progress can be retried next run.
+
+Partial city failures still publish accepted valid progress and report the job
+as failed. If validation/recovery fails, publication is skipped. A concurrent
+external edit to weather-data can reject a normal push; this is reported rather
+than resolved with a force push. The next run checks out the new branch tip.
+Concurrency groups serialize workflow runs; the pipeline lock serializes sinks.
+
+GitHub's GITHUB_TOKEN pushes do not recursively trigger push workflows:
+[workflow trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+
+## Recovery and size management
+
+The branch preserves accepted weather records independently of artifact expiry.
+Artifacts (90-day retention) additionally contain Bronze, detailed lineage,
+quarantine and prior run history. If they expire, Silver/Gold are recovered from
+the branch, with new recovery lineage; old raw/run metadata cannot be recreated
+from a CSV. Keep external backups if you need the complete audit trail.
+
+The current uncompressed CSV is about 69 MiB. Daily partitioning keeps ordinary
+files small, while the deterministic gzip full snapshot is about 10 MiB. The
+publisher checks a 95 MiB per-file budget before committing. GitHub blocks files
+above 100 MiB; see [large-file guidance](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github).
+Git history still grows with daily data; monitor repository size and migrate to
+LFS/object storage if necessary. No new dependency is needed for this approach.
+A seven-day API lookback cannot automatically fill longer data gaps.
+
+For local branch regeneration or recovery into separately configured outputs:
+
+```bash
+.venv/bin/python scripts/publish_data.py publish /path/to/data-branch-checkout
+.venv/bin/python scripts/publish_data.py restore /path/to/data-branch-checkout --config recovery.yaml
+```
+
+Published snapshot restoration verifies gzip and CSV hashes, byte count, schema,
+row count and a 2 GiB decompression budget before merging. Validation or conflicts
+roll the snapshot merge back. Repeating the same snapshot leaves accepted rows
+unchanged. Archive packing/restoration is also available via
+`scripts/state_archive.py` for retaining full runtime metadata, with path/hash
+verification and refusal to overwrite existing runtime state.

@@ -342,6 +342,40 @@ class Pipeline:
         self.counts["cities_failed"] += 1
         self.logger.error("City failed: %s; %s; will retry next run", city, reason)
 
+    def merge_published_csv(self, path: Path) -> dict[str, Any]:
+        """Restore/merge validated published Silver without replacing accepted rows.
+
+        This also repairs progress lost when an artifact upload failed after the
+        data branch was pushed. Any conflict rolls the entire snapshot merge back.
+        """
+
+        def task(connection: sqlite3.Connection) -> None:
+            import csv
+
+            from weather_pipeline.models import COLUMNS
+
+            with path.open(encoding="utf-8", newline="") as handle, connection:
+                reader = csv.DictReader(handle)
+                if reader.fieldnames != COLUMNS:
+                    raise ValueError("published CSV header mismatch")
+                for raw in reader:
+                    self.counts["silver_in"] += 1
+                    row = canonical_source(raw)
+                    observation = validate_observation(row, self.now, historical=True)
+                    inserted, conflict = insert_observation(
+                        connection,
+                        observation,
+                        "github-published-silver",
+                        str(row["observation_id"]),
+                        None,
+                        {"recovered_from": "weather-data"},
+                    )
+                    if conflict:
+                        raise ValueError("published snapshot conflicts with accepted Silver")
+                    self.counts["silver_out" if inserted else "silver_skipped"] += 1
+
+        return self._execute("merge-published", task)
+
     def export(self) -> dict[str, Any]:
         """Repair/publish synchronized Silver and Gold exports."""
         return self._execute("export-csv", lambda connection: None)
