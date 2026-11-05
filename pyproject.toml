@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mh-weather-pipeline"
+version = "0.1.0"
+description = "Maharashtra weather pipeline using Open-Meteo and SQLite"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2.7,<3", "requests>=2.32,<3", "python-dotenv>=1,<2"]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.9,<1", "mypy>=1.14,<2", "pytest>=8,<9", "pytest-cov>=6,<7", "pre-commit>=4,<5", "types-requests>=2.32"]
+
+[project.scripts]
+weather-pipeline = "weather_pipeline.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=weather_pipeline --cov-report=term-missing --cov-report=xml --cov-fail-under=85"

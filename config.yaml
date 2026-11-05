@@ -1,0 +1,18 @@
+{
+  "source": "open-meteo",
+  "api_url": "https://api.open-meteo.com/v1/forecast",
+  "historical_csv": "data/weather_dataset.csv",
+  "historical_db": "data/weather.db",
+  "city_reference": "data/maharashtra_tehsils_final.csv",
+  "working_db": "data/silver/weather.db",
+  "export_csv": "data/silver/weather_dataset.csv",
+  "bronze_dir": "data/bronze",
+  "quarantine_dir": "data/quarantine",
+  "gold_dir": "data/gold",
+  "cities": [],
+  "batch_size": 20,
+  "timeout_seconds": 30,
+  "request_interval_seconds": 1,
+  "max_retries": 3,
+  "log_level": "INFO"
+}
