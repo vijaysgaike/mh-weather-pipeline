@@ -25,6 +25,10 @@ class Settings(BaseModel):
     bronze_dir: Path = Path("data/bronze")
     quarantine_dir: Path = Path("data/quarantine")
     gold_dir: Path = Path("data/gold")
+    backup_dir: Path = Path("data/backups")
+    lookback_days: int = Field(default=7, ge=1, le=7)
+    overlap_hours: int = Field(default=6, ge=1, le=168)
+    freshness_hours: int = Field(default=3, ge=1, le=48)
     cities: list[str] = Field(default_factory=list)
     batch_size: int = Field(default=20, ge=1, le=100)
     timeout_seconds: float = Field(default=30, gt=0, le=300)
@@ -45,13 +49,31 @@ class Settings(BaseModel):
             self.bronze_dir.resolve(),
             self.quarantine_dir.resolve(),
             self.gold_dir.resolve(),
+            self.backup_dir.resolve(),
         ]
+        existing_paths = [path for path in [*inputs, *outputs] if path.exists()]
+        if any(
+            a.samefile(b)
+            for index, a in enumerate(existing_paths)
+            for b in existing_paths[index + 1 :]
+        ):
+            raise ValueError(
+                "Input and output files must be distinct, without aliases or hard links"
+            )
+        if len(inputs) != 3:
+            raise ValueError("Historical input files must be distinct")
         if len(set(outputs)) != len(outputs) or inputs.intersection(outputs):
             raise ValueError("Working outputs must be distinct from each other and source inputs")
         if len(set(directories)) != len(directories):
             raise ValueError("Layer directories must be distinct")
-        if any(d == p or p in d.parents for d in directories for p in inputs | set(outputs)):
-            raise ValueError("Layer directories cannot alias or descend from file paths")
+        if any(a in b.parents for a in directories for b in directories if a != b):
+            raise ValueError("Layer directories cannot be nested")
+        if any(
+            d == p or p in d.parents or d in p.parents
+            for d in directories
+            for p in inputs | set(outputs)
+        ):
+            raise ValueError("Layer directories cannot overlap source or output file paths")
         return self
 
 
@@ -85,6 +107,7 @@ def load_settings(config_path: Path = Path("config.yaml")) -> Settings:
         "bronze_dir",
         "quarantine_dir",
         "gold_dir",
+        "backup_dir",
     ):
         value = values.get(name, Settings.model_fields[name].default)
         if not isinstance(value, (str, Path)):

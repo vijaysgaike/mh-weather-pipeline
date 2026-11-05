@@ -14,5 +14,9 @@
   "timeout_seconds": 30,
   "request_interval_seconds": 1,
   "max_retries": 3,
-  "log_level": "INFO"
+  "log_level": "INFO",
+  "backup_dir": "data/backups",
+  "lookback_days": 7,
+  "overlap_hours": 6,
+  "freshness_hours": 3
 }

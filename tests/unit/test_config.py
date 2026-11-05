@@ -83,3 +83,25 @@ def test_malformed_config(tmp_path: Path) -> None:
 def test_path_must_be_string(tmp_path: Path, value: object) -> None:
     with pytest.raises(ValueError, match="filesystem path"):
         load_settings(write_config(tmp_path, {"working_db": value}))
+
+
+def test_hardlink_cannot_alias_input(tmp_path: Path) -> None:
+    source = tmp_path / "source.db"
+    source.touch()
+    alias = tmp_path / "alias.db"
+    alias.hardlink_to(source)
+    with pytest.raises(ValidationError, match="hard links"):
+        Settings(historical_db=source, working_db=alias)
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"bronze_dir": "data"},
+        {"gold_dir": "data/bronze/nested"},
+        {"historical_db": "data/weather_dataset.csv"},
+    ],
+)
+def test_layer_and_input_paths_cannot_overlap(patch: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        Settings.model_validate(patch)
