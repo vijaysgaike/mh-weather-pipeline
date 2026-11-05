@@ -60,7 +60,7 @@ an explicit historical source/archive adapter; this pipeline does not claim to
 repair arbitrary historical gaps automatically.
 
 For GitHub scheduling, upload the local state archive to an HTTPS location you
-control, provide WEATHER_SEED_URL, manually seed the workflow, then enable the
-WEATHER_SCHEDULE_ENABLED repository variable. No dataset upload, public data
+control, provide WEATHER_SEED_URL, manually seed the workflow, then verify its automatic four-hour schedule on
+the default branch. No dataset upload, public data
 release, or GitHub secret/settings change is performed by project code setup.
 See scheduled-ingestion.md for durable-state expiry, backup and access trade-offs.

@@ -1,7 +1,7 @@
 # Scheduled GitHub ingestion
 
-The workflow is `.github/workflows/scheduled_ingest.yml`, every six hours at
-minute 17 UTC (05:47, 11:47, 17:47, 23:47 Asia/Kolkata). It needs no weather API
+The workflow is `.github/workflows/scheduled_ingest.yml`, every four hours at
+minute 17 UTC (05:47, 09:47, 13:47, 17:47, 21:47, 01:47 next day Asia/Kolkata). It needs no weather API
 secret. It uses the repository's scoped GITHUB_TOKEN for artifact access.
 
 ## Initial setup
@@ -21,9 +21,10 @@ secret. It uses the repository's scoped GITHUB_TOKEN for artifact access.
 4. Manually run **Scheduled ingestion** in GitHub Actions. It downloads the seed,
    verifies its manifest and checksums, restores into empty runtime outputs,
    validates, ingests, and uploads a `weather-state` artifact.
-5. Confirm the result, then set repository Actions variable
-   `WEATHER_SCHEDULE_ENABLED=true`. Scheduled invocations are disabled otherwise.
-   Manual invocations remain available for setup/recovery.
+5. Confirm the result. Scheduled invocations run automatically every four hours
+   once the workflow is on the default branch and GitHub Actions is enabled. No
+   enablement variable is required. Manual invocations remain available for
+   setup/recovery. If there is no initial state, the job fails with setup instructions.
 
 Each subsequent run restores the newest unexpired artifact named weather-state.
 Concurrency groups serialize runs. It preserves Silver history, Bronze raw files,

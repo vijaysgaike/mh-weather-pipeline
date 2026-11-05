@@ -1,7 +1,7 @@
 name: Scheduled ingestion
 on:
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: '17 */4 * * *'
   workflow_dispatch:
     inputs:
       seed_url:
@@ -16,8 +16,6 @@ concurrency:
   cancel-in-progress: false
 jobs:
   ingest:
-    # Enable this repository variable only after reading the runbook and seeding state.
-    if: github.event_name == 'workflow_dispatch' || vars.WEATHER_SCHEDULE_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

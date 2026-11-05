@@ -92,7 +92,7 @@ strict source typing, and pytest with a >=85% source coverage gate on Python
 3.11 and 3.12. Measured coverage is uploaded as a CI artifact; the badge above
 labels the required gate. See [verification](docs/completion.md) for local results.
 
-Scheduled GitHub ingestion runs every six hours once enabled. It restores a
+Scheduled GitHub ingestion runs every four hours when this workflow is on the default branch. It restores a
 verified runtime-state archive and uploads the updated state as an artifact,
 rather than committing large datasets. **An initial state archive is required**;
 it never silently starts from an empty history. Artifacts expire after 90 days:
