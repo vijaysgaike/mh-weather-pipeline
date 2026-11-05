@@ -7,8 +7,8 @@ install:
 test:
 	$(PYTHON) -m pytest
 lint:
-	$(PYTHON) -m ruff check src tests
-	$(PYTHON) -m ruff format --check src tests
+	$(PYTHON) -m ruff check src tests scripts
+	$(PYTHON) -m ruff format --check src tests scripts
 check: lint
 	$(PYTHON) -m mypy
 	$(MAKE) test

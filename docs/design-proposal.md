@@ -1,5 +1,8 @@
 # Inspection and proposed design — approval checkpoint
 
+Historical approved proposal. For completed behavior and verification, see
+[completion.md](completion.md) and the current README.
+
 ## Existing data
 
 The complete schema, per-column null counts, table counts, timestamp ranges,

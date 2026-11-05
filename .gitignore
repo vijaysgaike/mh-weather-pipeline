@@ -21,3 +21,7 @@ dist/
 .aws/
 .codex/
 .agents/
+
+# Portable runtime state
+.state/
+weather-state*.zip

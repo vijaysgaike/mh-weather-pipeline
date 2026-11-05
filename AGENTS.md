@@ -1,6 +1,6 @@
 # Weather pipeline conventions
 
-- Follow the user-provided milestone plan. First inspect data and propose a design; wait for explicit approval before implementation. After each milestone, run checks, summarize changes and results, and wait for "continue".
+- Inspection/design were approved. The user subsequently authorized completing M2–M6 in one pass without milestone pauses. Run checks and report results throughout; preserve all remaining conventions.
 - Use Open-Meteo, without an API key, instead of OpenWeatherMap.
 - Never overwrite or delete the supplied data. Use backups and separate working outputs before any migration.
 - Preserve the supplied 37-column weather CSV contract. SQLite is the existing database engine.
