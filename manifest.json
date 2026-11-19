@@ -1,7 +1,7 @@
 {
   "format_version": 1,
-  "row_count": 282515,
-  "latest_timestamp_utc": "2026-11-18T20:00:00+00:00",
+  "row_count": 283387,
+  "latest_timestamp_utc": "2026-11-19T00:00:00+00:00",
   "columns": [
     "observation_id",
     "city",
@@ -43,9 +43,9 @@
   ],
   "snapshot": {
     "path": "weather_dataset.csv.gz",
-    "sha256": "c00eb4543231e636a540e7e3f01e6ef01757ae54a9d2896daf981f912f7aadd6",
-    "csv_sha256": "bac4fe50538749fcc557849321aeabf038925fce012694a9c7b6717209dc918d",
-    "csv_bytes": 95229714
+    "sha256": "580e2c27ffbeb7017ef8cd543229df7ba1895bba3c72e606bb30b3958eb678c0",
+    "csv_sha256": "bf36401daa062095e0bf411bff840c1f77cc6a5e5ee0f48b5389ec131a37c389",
+    "csv_bytes": 95526619
   },
   "daily_files": [
     {
@@ -900,8 +900,13 @@
     },
     {
       "path": "daily/2026/11/2026-11-18.csv",
-      "sha256": "f5369fc0fa2ab23ca2e6589a3d1bcdb35c67a9518a3047ce9a687e89df71a6cd",
-      "bytes": 1556727
+      "sha256": "f02217b10a9de65acc86659db05825bc0d9f6f28eeed592866a7343a02048b07",
+      "bytes": 1779856
+    },
+    {
+      "path": "daily/2026/11/2026-11-19.csv",
+      "sha256": "4710e863c47a04ee5f748abbfe992e80de602d206ba865bf6b24b6eda0291315",
+      "bytes": 74236
     }
   ]
 }
